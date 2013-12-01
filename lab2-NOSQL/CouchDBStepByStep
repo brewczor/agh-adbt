@@ -1,0 +1,14 @@
+//Creating db "dokumenty"
+curl -X PUT http://192.168.0.30:5984/dokumenty
+
+//Creating document
+curl -X POST http://192.168.0.30:5984/ogl -H "Content-Type: application/json" -d '{"kierunek":"PAW" , "tresc":"zajecia odwolane"}'
+
+//Creating document with custom id
+curl -X PUT http://192.168.0.30:5984/ogl/doc1 -H "Content-Type: application/json" -d '{"kierunek":"GAW" , "tresc":"koniec semestru", "data":"2013-10-12"}'
+
+//Creating persistant view
+curl -X PUT http://192.168.0.30:5984/dokumenty/_design/widoki -H "Content-Type: application/json" -d @widoki.json
+
+//Show view
+http://89.79.177.93:5984/dokumenty/_design/widoki/_view/litery?group=true

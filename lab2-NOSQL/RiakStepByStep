@@ -1,0 +1,15 @@
+Dodanie do riaka
+curl -v -XPUT  -H 'x-riak-index-lang_bin: en' -d @chicken http://nosql.kis.agh.edu.pl:8098/riak/lbrewczynski/chicken
+
+
+
+
+Pobranie pliku
+http://nosql.kis.agh.edu.pl:8098/riak/lbrewczynski/egg
+
+
+
+
+Funkcja 1:
+curl -X POST -H "content-type: application/json" \ http://nosql.kis.agh.edu.pl:8098/mapred --data @riakpl.json
+

@@ -1,0 +1,106 @@
+====== Laboratorium: GIS ======
+
+Celem laboratorium jest zapoznanie z działaniem przestrzennych baz danych na przykładzie systemu PostGIS.
+
+
+===== Przygotowanie bazy =====
+Na serwerach ''borg'' i ''charon'' zainstalowany jest system PostGIS w wersji 1.5.3. [[http://postgis.net/docs/manual-1.5/|Dokumentacja]]
+
+**Uwaga:** instrukcja zakłada, że działamy na bazie domyślnej, o nazwie identycznej z nazwą użytkownika.
+
+Baza danych, zanim można będzie jej użyć z PostGIS, należy ją odpowiednio przygotować, wykonując następujące kroki:
+  - Upewnienie się, czy w bazie jest dostępny język //plpgsql//: <code bash>$ createlang plpgsql</code>
+  - Dodanie z pliku typów przestrzennych: <code bash>$ psql -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql</code>
+  - Import danych o układach odniesienia: <code bash>$ psql -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql</code>
+  - Można również dodać komentarze - forma samodokumentacji elementów bazy: <code bash>psql -f /usr/share/postgresql/9.1/contrib/postgis_comments.sql</code>
+
+
+===== Tworzenie tabel z kolumnami przestrzennymi =====
+
+Tabele z kolumnami przestrzenne tworzymy w dwóch krokach:
+  - Utworzenie tabeli ze wszystkimi atrybutami nie-przestrzennymi.
+  - Dodanie kolumn przestrzennych przy pomocy funckji ''[[http://postgis.refractions.net/docs/AddGeometryColumn.html|AddGeometryColumn]]'': <code sql>SELECT AddGeometryColumn(tabela, nazwa_atrybutu, srid, typ, wymiary)</code>
+lub gdy używamy innego schematu niż ''public'':
+<code sql>SELECT AddGeometryColumn(schemat, tabela, nazwa_atrybutu, srid, typ, wymiary)</code>
+gdzie:
+  * ''tabela'' - nazwa tabeli
+  * ''nazwa_atrybutu'' - nazwa tworzonej kolumny
+  * ''srid'' - identyfikator układu odniesienia (np. 4326 dla WGS-84 znanego m.in. z GPS - stopnie) lub -1 dla nieokreślonego SRID, podawane jako liczba
+  * ''typ'' - przechowywany typ, abstrakcyjny np. ''GEOMETRY'' lub określone np. ''POLYGON'' lub ''LINESTRING'', podawane jako ciąg znaków.
+  * ''wymiary'' - liczba wymiarów, 2 lub 3
+
+Przykład:
+<code sql>select addgeometrycolumn('sebastian_ernst', 'test', 'geom', 4326, 'point', 2);</code>
+
+Przypomnij sobie z wykładu, jakie istnieją typy geograficzne oraz układy odniesienia.
+
+===== Jak wykonywać ćwiczenia =====
+
+Ćwiczenia 22.11 wykonujemy na sewerze podanym przez prowadzącego, wyjątwkowo w PostGIS 2.1.
+
+:!: :!: **UWAGA:** Każda osoba powinna utworzyć schemat w bazie dla siebie, np. ''jan_kowalski'' i wszystkie operacje wykonywać w tym schemacie!
+
+Narzędzie ''shp2pgsql'' wykorzystywane w późniejszych ćwiczeniach posiada opcje umieszczające nazwę schematu bezpośrednio w generowanym kodzie SQL.
+
+
+===== Ćwiczenie 1: tworzenie tabeli, odległość, układy odniesienia =====
+
+
+W ćwiczeniu korzystaj z układu odniesienia (SRID) [[http://spatialreference.org/ref/epsg/4326/|EPSG:4326]], czyli popularnego m.in. z odbiorników GPS układu opartego o stopnie.
+
+Utwórz tabelę ''miasta'' przechowującą co najmniej nazwę miasta oraz współrzędne punktu, stanowiącego ustalony środek miasta. Dodaj, na podstawie danych z Wikipedii (link //geohack// np. na stronie o [[http://pl.wikipedia.org/wiki/Kraków|Krakowie]]), współrzędne co najmniej dwóch polskich miast.
+
+**Uwaga:** Zwróć uwagę, że zazwyczaj współrzędne podawane są w kolejności (szerokość długość), natomiast w WKT obowiązuje (długość szerokość). Kod WKT reprezentujący "środek" Krakowa w układzie WGS-84 będzie więc wyglądał tak: <code wkt>POINT(19.938333 50.061389)</code>
+
+Napisz zapytanie, które obliczy odległość między tymi miastami. W jakich jednostkach jest wynik?
+
+Aby uzyskać wynik w metrach, należy zmienić układ współrzędnych na taki, który da w miarę dokładny dla obszaru Polski wynik wyrażony w metrach. Korzystając z wyszukiwarki na stronie [[http://spatialreference.org]] spróbuj jakieś lokalne układy dla Polski i oblicz jeszcze raz odległość, ale tym razem rzutując oba punkty (wewnątrz funkcji ''ST_Distance'') na wybrany układ odniesienia, korzystając z funkcji ''ST_Transform''.
+
+Powtórz ćwiczenie dla kilku innych wybranych SRID.
+
+===== Ćwiczenie 2: geometria vs. geografia =====
+
+Nie, nie chodzi o pojedynek przedmiotów szkolnych ;-)
+
+W poprzednim zadaniu mówiliśmy o "w miarę dokładnym" układzie odniesienia dla Polski, gdyż dla typów ''GEOMETRY'' odległość obliczana jest __po kuli__ opisanej danym układem współrzędnych. Oczywistym jest więc, że nie da się znaleźć układu "globalnie dokładnego". Stąd potrzeba rzutowania z układu WGS-84 na lokalne układy współrzędnych.
+
+PostGIS udostępnia również typ ''GEOGRAPHY'', który operuje na danych w układzie WGS-84, ale obliczenia wykonywane są po dokładnej elipsoidzie reprezentującej kształt kuli ziemskiej. Wadą jest to, że wiele funkcji PostGIS nie jest dostępnych dla typu ''GEOGRAPHY''.
+
+Powtórz ćwiczenie 1, tworząc analogiczną tabelę ''miasta2'', ale tym razem korzystaj z typu ''GEOGRAPHY''. Pamiętaj, że teraz nie ma potrzeby rzutowania układów współrzędnych. 
+
+Porównaj wynik z wynikami ćwiczenia 1.
+
+
+===== Ćwiczenie 3: import danych ======
+
+W archiwum {{:pl:ztb:krakow.tar.bz2}} znajdują się elementy mapy Krakowa pochodzące z serwisu [[http://www.openstreetmap.org|OpenStreetMap]]. Dane zapisane są w formacie [[http://en.wikipedia.org/wiki/Shapefile|ESRI shapefile]] i są zapisane w układzie współrzędnych [[http://spatialreference.org/ref/epsg/3785/|EPSG:3785]] (tzw. //Mercator//).
+
+Narzędzie ''shp2pgsql'' pozwala na wygenerowanie z plików //SHP// kodu SQL tworzącego bazę danych. Wygeneruj dla plików SHP pliki SQL (pamiętając o użyciu parametru ''-s'' tak, aby kod miał zgodne z rzeczywistością SRID, np.:
+<code bash>$ shp2pgsql -s 3785 admin.shp > admin.sql</code>
+Następnie zaimportuj pliki SQL do bazy.
+
+Tabele zawierają:
+  * ''admin'' - granice administracyjne Krakowa (multipolygon)
+  * ''amenities'' - elementy typu POI (point)
+  * ''roads'' - drogi (multilinestring)
+
+Do każdej z tabel dodaj nową kolumnę typu ''GEOGRAPHY'' (''ALTER TABLE'') a następnie, przy pomocy polecenia ''UPDATE'' wypełnij ją odpowiednio przeliczonymi danymi z kolumny ''geom''. 
+
+===== Ćwiczenie 4: obszar Krakowa =====
+Oblicz obszar Krakowa w km<sup>2</sup>. 
+
+Skorzystaj z kolumny z geometrią oraz z tej z geografią. Porównaj wyniki między sobą oraz z wartością z Wikipedii.
+
+===== Ćwiczenie 5: zawieranie, długość =====
+Korzystając z kolumn geograficznych oblicz łączną długość dróg zawierających się w granicach administracyjnych Krakowa.
+
+Oblicz również łączną długość autostrad zapisanych w bazie danych (niekoniecznie w granicach Krakowa).
+
+===== Ćwiczenie 6: wyszukiwanie w okolicy =====
+Sprawdź, ile obiektów należących do poszczególnych kategorii (tabela ''amenities'') znajduje się w promieniu 2 km od bieżącej lokalizacji.
+
+Tabelę wynikową uporządkuj w kolejności malejącej wg. liczby punktów danego typu.
+
+===== Ćwiczenie 7: długości ulic =====
+Wyświetl listę 10 najdłuższych ulic w Krakowie.
+

@@ -1,0 +1,73 @@
+//connect to db
+psql
+
+
+//creating schema
+CREATE SCHEMA lbrewczynski
+
+
+//creating table
+CREATE TABLE lbrewczynski.miasta(id bigserial PRIMARY KEY, nazwa varchar(20) NOT NULL);
+
+
+//standard insert
+INSERT INTO lbrewczynski.miasta (nazwa) values ('Krakow');
+
+
+//adding geometry column (schema, table, columnName, srid, type, size)
+SELECT AddGeometryColumn('lbrewczynski', 'miasta', 'geom', 4326, 'point', 2);
+
+
+//inserting geometry values
+INSERT INTO lbrewczynski.miasta (nazwa, geom) VALUES ('Krakow', ST_GeomFromText('POINT(19.938333 50.061389)',4326));
+
+INSERT INTO lbrewczynski.miasta (nazwa, geom) VALUES ('Warszawa', ST_GeomFromText('POINT(21.008333 52.232222)',4326));
+
+INSERT INTO lbrewczynski.miasta (nazwa, geom) VALUES ('Polaniec', ST_GeomFromText('POINT(21.283333 50.433333)',4326));
+
+
+//selecting from table
+SELECT id, nazwa, ST_AsText(geom), ST_AsEwkt(geom), ST_X(geom), ST_Y(geom) FROM lbrewczynski.miasta;
+
+
+//Distance
+SELECT p1.nazwa, p2.nazwa, ST_Distance_Sphere(p1.geom, p2.geom) FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2 WHERE p1.id > p2.id;
+
+SELECT p1.nazwa, p2.nazwa, ST_Distance_Sphere(p1.geom, p2.geom) FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2;
+
+SELECT p1.nazwa, p2.nazwa, ST_Distance_Sphere(p1.geom, p2.geom)/1000 FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2;
+
+SELECT ST_Distance(ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Krakow'), 26986), ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Warszawa'), 26986));
+
+SELECT ST_Distance(ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Krakow'), 3120), ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Warszawa'), 3120));
+
+
+//Creating table with type GEOGRAPHY
+CREATE TABLE lbrewczynski.miasta2 (id BIGSERIAL PRIMARY KEY, nazwa varchar(20) NOT NULL, geom geography(POINT, 4326));
+
+
+//inserting
+INSERT INTO lbrewczynski.miasta2 (nazwa, geom) VALUES ('Krakow', ST_GeomFromText('POINT(19.938333 50.061389)',4326));
+
+INSERT INTO lbrewczynski.miasta2 (nazwa, geom) VALUES ('Warszawa', ST_GeomFromText('POINT(21.008333 52.232222)',4326));
+
+
+//distance
+SELECT ST_Distance((SELECT geom FROM lbrewczynski.miasta2 WHERE nazwa='Krakow'), (SELECT geom FROM lbrewczynski.miasta2 WHERE nazwa='Warszawa'))/1000 as distance;
+
+
+//list schemas
+\dn
+
+
+//list tables
+\dt
+
+
+//exit
+\q
+
+
+//login
+ztb@mapserver.kis.agh.edu.pl
+...2013
