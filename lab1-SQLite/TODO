@@ -1,0 +1,162 @@
+====== Lekkie technologie bazodanowe ======
+
+===== Wstęp i wymagania =====
+
+Celem ćwiczenia jest zapoznanie się z technologią [[http://www.sqlite.org/|SQLite]] oraz identyfikację jej cech, ze szczególnym uwzględnieniem problemów wydajnościowych, jak i ilościowych (zajęcie pamięci).
+
+Do wykonania ćwiczenia niezbędna jest:
+  * znajomość programowania w języku C,
+  * umiejętność posługiwania się kompilatorem ''gcc'',
+  * umiejętność posługiwania się systemem operacyjnym Linux.
+
+
+===== Zaliczenie =====
+
+Warunkiem zaliczenia zajęć jest implementacja poniższych programów oraz prezentacja rezultatów prowadzącemu.
+Możliwa jest prezentacja w późniejszym terminie, ale nie później niż na następnych zajęciach.
+
+===== Ćwiczenie 1 =====
+
+Napisz program w języku C, który:
+  - dynamicznie zaallokuje pamięć pod następującą strukturę danych <code C>
+struct Rec {
+  int id;         /* unikalny identyfikator, klucz główny */
+  char name[20];  /* nazwa */
+  char desc[90];  /* opis */
+};
+</code>
+  - wypełni w/w strukturę przykładowymi danymi (dla uproszczenia dla każdego rekordu mogą być to takie same dane, z wyjątkiem pola będącego kluczem, tj. ''id''; dla kolejnych rekordów wartość ''id'' musi być równa zwiększonej o 1 wartości poprzedniej,
+  - przeszuka w/w strukturę w poszukiwaniu rekordu o ''id=999999''.
+
+Ponadto niezbędne jest aby program:
+  - pomierzył czas wykonania wypełniania danymi,
+  - pomierzył czas wykonania przeszukiwania,
+  - pomierzył zużycie pamięci.
+
+**Uwaga!** Weź pod uwagę, że wszyscy pracują w laboratorium na tej samej maszynie, co może mieć wpływ na pomiary, szczególnie czasów wykonania. Każdy eksperyment powtórz kilka razy.
+
+==== Wskazówki ====
+
+Dynamiczna allokacja pamięci:
+<code C>
+  data=malloc(sizeof(struct Rec)*MAX);
+  if (data==NULL) {
+    fprintf(stderr,"Mem alloc error\n");
+    return 1;
+  }
+  ...
+  free(data);
+</code>
+
+Pomiar czasu np. ''man 3 clock'':
+<code C>
+#include<time.h>
+...
+  clock_t c1,c2;
+...
+  c1=clock();
+...  
+  c2=clock();
+...
+  printf("time, c2-c1[s]: %f\n", ((float)c2-(float)c1)/CLOCKS_PER_SEC);
+</code>
+
+Pomiar zużycia (maksymalnego) pamięci w Linuksie ''man 2 getrusage'':
+<code C>
+  struct rusage mem;
+...
+  getrusage(RUSAGE_SELF,&mem);
+  printf("Max mem usage[kB]: %ld\n", mem.ru_maxrss);
+</code>
+
+
+===== Ćwiczenie 2 =====
+
+Powtórz ćwiczenie 1, ale używając SQLite.
+Wykonaj pomiary dla następujących różnych parametrów:
+  - sposób przechowywania danych: pamięć vs. system plików,
+  - rozmiar rekordu danych: np. (integer + 8 znaków + 15 znaków) vs. (integer + 18 znaków + 80 znaków) 
+
+==== Wskazówki ====
+
+Aby "nawiązać połączenie z bazą danych" i poprawnie go zamknąć należy:
+<code c>
+  int rc;
+  sqlite3 *db;
+  char loc[]=":memory:";
+...
+  rc=sqlite3_open(loc,&db);
+  if (rc){
+    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    return 1;
+  }
+...
+  sqlite3_close(db);
+</code>
+Zmienna 'loc' przechowuje informacje o lokalizacji bazy danych, może to być nazwa pliku, albo wartość '':memory:'' (jak w w/w przykładzie), która powoduje umieszczenie bazy w pamięci.
+
+Do realizacji zapytań można użyć funkcji ''sqlite3_exec()'':
+<code c>
+  rc=sqlite3_exec(db,"CREATE TABLE inv (id integer PRIMARY KEY, name varchar(20), desc varchar(90));", NULL, NULL, NULL);
+
+  if (rc){
+    fprintf(stderr, "Database create table error: %s\n", sqlite3_errmsg(db));
+    return 1;
+  }
+</code>
+albo zapytań przygotowanych wcześniej:
+<code c>
+  char *sql;
+  sqlite3_stmt *stmt;
+...
+  sql="SELECT * FROM mojatabela";
+  rc=sqlite3_prepare_v2(db,sql,strlen(sql), &stmt, NULL);
+  if (rc){
+    fprintf(stderr, "Database prepare statement error: %s\n", sqlite3_errmsg(db));
+    return 1;
+  }
+  do {
+    rc=sqlite3_step(stmt);
+    if (rc==SQLITE_ROW) {
+      printf("I found sth: %s, %s, %d\n",
+	     (char *)sqlite3_column_text(stmt,0),
+	     (char *)sqlite3_column_text(stmt,2));
+	     sqlite3_column_int(stmt,1),
+    }
+  } while (rc == SQLITE_ROW);
+  sqlite3_finalize(stmt);
+</code>
+
+Raz przygotowane zapytanie można wykonywać wiele razy, przydaje się ''sqlite3_reset()'':
+<code c>
+  sql="INSERT INTO zakupy VALUES (?1,?2)";
+  rc=sqlite3_prepare_v2(db,sql,strlen(sql), &stmt, NULL);
+  if (rc){
+    fprintf(stderr, "Database prepare statement error: %s\n", sqlite3_errmsg(db));
+    return 1;
+  }
+
+  for (i=0; i<MAX; i++){
+    sqlite3_bind_int(stmt,1,ile[i]);                                /* ilość zakupów */
+    sqlite3_bind_text(stmt,2,co[i],strlen(co[i])+1,SQLITE_STATIC);  /* nazwa zakupu */
+    rc=sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+      fprintf(stderr,"Database insert error\n");
+    }
+    sqlite3_reset(stmt);
+  }
+  sqlite3_finalize(stmt);
+</code>
+
+W przypadku wykonywania wielu operacji modyfikacji (np. insert) warto ująć je w transakcję. W przypadku SQLite ma to wpływ na sposób buforowania zapytań i danych, co znacznie przyspiesza ich wykonanie.
+<code c>
+  sqlite3 *db;
+...
+  sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, NULL);  
+...
+  sqlite3_exec(db, "COMMIT TRANSACTION", NULL, NULL, NULL );
+</code>
+
+===== TBD =====
+
+REDIS? FIXME 
