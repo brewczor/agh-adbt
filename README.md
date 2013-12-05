@@ -1,4 +1,4 @@
 agh-adbt
 ========
 
-University Stuff - Advanced Data Base Technologies
+AGH - Advanced Data Base Technologies
