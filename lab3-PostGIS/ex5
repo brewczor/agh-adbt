@@ -1,0 +1,9 @@
+//display roads length in Krakow
+SELECT c.name, sum(ST_Length(r.geom))/1000 as roads_km FROM lbrewczynski.roads AS r,
+lbrewczynski.admin AS c WHERE ST_Contains(c.geom, r.geom) and c.name='Kraków' GROUP BY c.name;
+//ST_Contains doesn't work with type geography
+
+//display motorways (highways) length in db
+SELECT sum(ST_Length(geom))/1000 as roads_km FROM lbrewczynski.roads where class='motorways';
+
+SELECT sum(ST_Length(geogr))/1000 as roads_km FROM lbrewczynski.roads where class='motorways';
