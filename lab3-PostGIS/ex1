@@ -1,0 +1,30 @@
+//create table miasta
+CREATE TABLE lbrewczynski.miasta(id bigserial PRIMARY KEY, nazwa varchar(20) NOT NULL);
+
+//add GEOMETRY column (schema, table, columnName, srid, type, size)
+SELECT AddGeometryColumn('lbrewczynski', 'miasta', 'geom', 4326, 'point', 2);
+
+//add city records
+INSERT INTO lbrewczynski.miasta (nazwa, geom) VALUES ('Krakow', ST_GeomFromText('POINT(19.938333 50.061389)',4326));
+INSERT INTO lbrewczynski.miasta (nazwa, geom) VALUES ('Warszawa', ST_GeomFromText('POINT(21.008333 52.232222)',4326));
+INSERT INTO lbrewczynski.miasta (nazwa, geom) VALUES ('Polaniec', ST_GeomFromText('POINT(21.283333 50.433333)',4326));
+
+//selecting GEOMETRY colums (Text/WKT/X/Y) (bonus)
+SELECT id, nazwa, ST_AsText(geom), ST_AsEwkt(geom), ST_X(geom), ST_Y(geom) FROM lbrewczynski.miasta;
+
+//show distance between all records (in degrees)
+SELECT p1.nazwa, p2.nazwa, ST_Distance(p1.geom, p2.geom) FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2 WHERE p1.id > p2.id;
+
+//show distance between all records (in meters)
+SELECT p1.nazwa, p2.nazwa, ST_Distance_Sphere(p1.geom, p2.geom) FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2 WHERE p1.id > p2.id;
+
+//show distance between all records (in meters) - extended (also between the same record)
+SELECT p1.nazwa, p2.nazwa, ST_Distance_Sphere(p1.geom, p2.geom) FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2;
+
+//show distance between all records (in km)
+SELECT p1.nazwa, p2.nazwa, ST_Distance_Sphere(p1.geom, p2.geom)/1000 FROM lbrewczynski.miasta AS p1, lbrewczynski.miasta AS p2 WHERE p1.id > p2.id;
+
+//show distance between 2 records using function ST_Transform and frame 
+SELECT ST_Distance(ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Krakow'), 26986), ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Warszawa'), 26986));
+
+SELECT ST_Distance(ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Krakow'), 3120), ST_Transform((SELECT geom FROM lbrewczynski.miasta WHERE nazwa='Warszawa'), 3120));

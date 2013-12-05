@@ -1,0 +1,37 @@
+//Download krakow maps
+wget http://home.agh.edu.pl/~wojnicki/wiki/_media/pl:ztb:krakow.tar.bz2
+
+//untar file
+tar xjf ...
+
+//generate db sql files
+shp2pgsql -s 3785 admin.shp > admin.sql
+shp2pgsql -s 3785 amenities.shp > amenities.sql
+shp2pgsql -s 3785 roads.shp > roads.sql
+
+//create tables from sql files
+psql -f filename.sql
+(or)
+(after psql) \i filename.sql
+
+//copy tables into own schema
+CREATE TABLE lbrewczynski.admin AS (SELECT * FROM admin);
+CREATE TABLE lbrewczynski.amenities AS (SELECT * FROM amenities);
+CREATE TABLE lbrewczynski.roads AS (SELECT * FROM roads);
+
+//add GEOGRAPHY column to tables
+ALTER TABLE lbrewczynski.admin ADD COLUMN geogr geography(MULTIPOLYGON, 4326);
+ALTER TABLE lbrewczynski.amenities ADD COLUMN geogr geography(POINT, 4326);
+ALTER TABLE lbrewczynski.roads ADD COLUMN geogr geography(MULTILINESTRING, 4326);
+
+//Insert values from geom into geogr
+UPDATE lbrewczynski.admin SET geogr = ST_Transform(geom, 4326);
+UPDATE lbrewczynski.amenities SET geogr = ST_Transform(geom, 4326);
+UPDATE lbrewczynski.roads SET geogr = ST_Transform(geom, 4326);
+
+(if you get:
+ERROR: Only lon/lat coordinate systems are supported in geography.
+your SRID is wrong!!)
+Try this also:
+SELECT geography(ST_Transform(geom, 3785)) from lbrewczynski.admin;
+)
