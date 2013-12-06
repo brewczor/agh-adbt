@@ -1,0 +1,23 @@
+//create tables from sql files
+psql -f filename.sql
+(or)
+(after psql) \i filename.sql
+
+//check tables
+\dt
+
+
+//show all orders for buk1 composition
+select * from zamowienia where idkompozycji='buk1';
+
+//check querry plan (EXPLAIN)
+explain select * from zamowienia where idkompozycji='buk1';
+
+//create index on table
+create index ind1 on zamowienia using hash (idkompozycji);
+
+//use explain again
+
+//drop created index
+drop index ind1
+
