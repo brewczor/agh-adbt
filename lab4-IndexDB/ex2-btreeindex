@@ -1,0 +1,98 @@
+//create btree index on table
+create index ind2 on zamowienia using btree (idkompozycji);
+
+//explain analyze
+explain analyze select * from zamowienia where idkompozycji='buk1';
+
+//result
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=11.54..81.84 rows=424 width=52) (actual time=0.337..0.941 rows=424 loops=1)
+   Recheck Cond: (idkompozycji = 'buk1'::bpchar)
+   ->  Bitmap Index Scan on ind1  (cost=0.00..11.43 rows=424 width=0) (actual time=0.295..0.295 rows=424 loops=1)
+         Index Cond: (idkompozycji = 'buk1'::bpchar)
+ Total runtime: 1.208 ms
+
+
+//select records < b.....
+explain analyze select * from zamowienia where ascii(idkompozycji) < ascii('b');
+
+//result
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Seq Scan on zamowienia  (cost=0.00..205.26 rows=2672 width=52) (actual time=14.650..14.650 rows=0 loops=1)
+   Filter: (ascii((idkompozycji)::text) < 98)
+ Total runtime: 14.698 ms
+
+
+//select records >= b.....
+explain analyze select * from zamowienia where ascii(idkompozycji) >= ascii('b');
+
+
+//result
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Seq Scan on zamowienia  (cost=0.00..205.26 rows=2672 width=52) (actual time=0.030..19.785 rows=8015 loops=1)
+   Filter: (ascii((idkompozycji)::text) >= 98)
+ Total runtime: 23.923 ms
+
+
+//better queries
+explain analyze select * from zamowienia where idkompozycji < 'b';
+
+//result
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Index Scan using ind2 on zamowienia  (cost=0.00..8.27 rows=1 width=52) (actual time=0.020..0.020 rows=0 loops=1)
+   Index Cond: (idkompozycji < 'b'::bpchar)
+ Total runtime: 0.079 ms
+
+
+
+explain analyze select * from zamowienia where idkompozycji >= 'b';
+
+//result
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Seq Scan on zamowienia  (cost=0.00..165.19 rows=8015 width=52) (actual time=0.032..12.753 rows=8015 loops=1)
+   Filter: (idkompozycji >= 'b'::bpchar)
+ Total runtime: 16.370 ms
+
+
+
+//force using indexes
+SET ENABLE_SEQSCAN TO OFF;
+
+
+//once again
+explain analyze select * from zamowienia where idkompozycji < 'b%';
+
+                                                     QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Index Scan using ind2 on zamowienia  (cost=0.00..8.27 rows=1 width=52) (actual time=0.021..0.021 rows=0 loops=1)
+   Index Cond: (idkompozycji < 'b'::bpchar)
+ Total runtime: 0.080 ms
+
+
+
+
+explain analyze select * from zamowienia where idkompozycji >= 'b%';
+
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=158.37..323.55 rows=8015 width=52) (actual time=6.863..11.143 rows=8015 loops=1)
+   Recheck Cond: (idkompozycji >= 'b'::bpchar)
+   ->  Bitmap Index Scan on ind2  (cost=0.00..156.36 rows=8015 width=0) (actual time=6.807..6.807 rows=8015 loops=1)
+         Index Cond: (idkompozycji >= 'b'::bpchar)
+ Total runtime: 13.767 ms
+
+
+
+//drop created index
+drop index ind2
+
+
+
+
+
+

@@ -1,0 +1,44 @@
+//create tables from sql files
+psql -f filename.sql
+(or)
+(after psql) \i filename.sql
+
+//check tables
+\dt
+
+//show table informations, i.e. indexes
+\d zamowienia
+
+
+//show all orders for buk1 composition
+select * from zamowienia where idkompozycji='buk1';
+
+//check querry plan (EXPLAIN)
+explain analyze select * from zamowienia where idkompozycji='buk1';
+
+//result
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
+ Seq Scan on zamowienia  (cost=0.00..165.19 rows=424 width=52) (actual time=0.027..5.226 rows=424 loops=1)
+   Filter: (idkompozycji = 'buk1'::bpchar)
+ Total runtime: 5.510 ms
+
+
+//create hash index on table
+create index ind1 on zamowienia using hash (idkompozycji);
+
+//use explain again
+explain analyze select * from zamowienia where idkompozycji='buk1';
+
+//result
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=15.54..85.84 rows=424 width=52) (actual time=0.144..0.653 rows=424 loops=1)
+   Recheck Cond: (idkompozycji = 'buk1'::bpchar)
+   ->  Bitmap Index Scan on ind1  (cost=0.00..15.43 rows=424 width=0) (actual time=0.118..0.118 rows=424 loops=1)
+         Index Cond: (idkompozycji = 'buk1'::bpchar)
+ Total runtime: 0.800 ms
+
+//drop created index
+drop index ind1
+

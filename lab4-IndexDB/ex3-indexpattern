@@ -1,0 +1,28 @@
+//create index on uwagi column
+create index ind3 on zamowienia using hash(uwagi);
+
+//select all records where uwagi begins with 'do...'
+explain analyze select * from zamowienia where uwagi like 'do%';
+
+//result
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Seq Scan on zamowienia  (cost=10000000000.00..10000000165.19 rows=11 width=52) (actual time=0.026..2.671 rows=11 loops=1)
+   Filter: ((uwagi)::text ~~ 'do%'::text)
+ Total runtime: 2.728 ms
+
+//drop created index
+drop index ind3
+
+//operator class
+CREATE INDEX zamowienia_uwagi ON zamowienia (uwagi varchar_pattern_ops);
+
+//once again result
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=4.36..34.93 rows=11 width=52) (actual time=0.801..0.818 rows=11 loops=1)
+   Filter: ((uwagi)::text ~~ 'do%'::text)
+   ->  Bitmap Index Scan on zamowienia_uwagi  (cost=0.00..4.36 rows=11 width=0) (actual time=0.778..0.778 rows=11 loops=1)
+         Index Cond: (((uwagi)::text ~>=~ 'do'::text) AND ((uwagi)::text ~<~ 'dp'::text))
+ Total runtime: 0.888 ms
+

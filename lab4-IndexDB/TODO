@@ -1,0 +1,113 @@
+====== Laboratorium: Indeksy w RBD ======
+
+Celem laboratorium jest zapoznanie z działaniem indeksowania w relacyjnych bazach danych.
+
+===== Przygotowanie bazy =====
+
+W archiwum {{:pl:ztb:cukiernia.tgz|}} znajdują się 2 pliki:
+  * ''1-ascii.sql'' - DDL, oraz podstawowe dane,
+  * ''3-ascii.sql'' - rozszerzone dane.
+Załaduj obydwa pliki do swojej bazy PostgreSQL na odpowiednim serwerze (borg/charon). Możesz utworzyć osobny schemat, tak aby oddzielić dane od danych z poprzednich ćwiczeń.
+
+
+===== Wskazówki do ćwiczeń =====
+Każde ćwiczenie dobrze zaczynać z bazą bez indeksów, należy je więc pousuwać (''DROP INDEX'').
+
+Proszę zapisywać plany i czasy wykonania dla wszystkich testowanych zapytań.
+
+===== Przetwarzanie zapytań w PostgreSQL =====
+Przypomnij sobie z wykładu, jakie kolejne bloki funkcjonalne przetwarzają zapytanie i jak jest ono przekształcane. Podpowiedź: http://www.postgresql.org/docs/9.3/static/query-path.html
+
+===== Polecenie ANALYZE =====
+Polecenie ''ANALYZE'' zbiera statystyki dotyczące rozkładu wartości w kolumnach tabel i zapisuje wyniki w tabeli systemowej ''pg_statistic''. Aby planer był w stanie optymalnie określić plan wykonania zapytania, wcześniej musi zostać wykonana operacja ANALYZE na tabeli i istotnych kolumnach.
+
+
+===== Polecenie EXPLAIN =====
+
+Polecenie ''EXPLAIN'' wyświetla plan wykonania zapytania. Dodanie opcji ''VERBOSE'' powoduje, że wyniki są wyświetlane w postaci rozszerzonej, a opcja ''ANALYZE'' automatycznie wykonuje polecenie ''ANALYZE'' oraz samo zapytanie, w związku z czym może dostarczyć również statystyk dotyczących rzeczywistego przebiegu wykonania zapytania i jego czasu.
+
+
+===== Indeksy oparte o haszowanie =====
+Wykonaj w tabeli ''zamowienia'' zapytanie, które wyświetla wszystkie zamówienia na kompozycję ''buk1''. Sprawdź plan wykonania zapytania i zapisz czas wykonania.
+
+Dodaj do tabeli ''zamowienia'' indeks oparty o haszowanie, który pozwoli na przyspieszenie powyższego zapytania. Sprawdź plan i zapisz czas.
+
+===== Indeksy oparte o b-drzewa =====
+
+**Uwaga:** w ćwiczeniu korzystaj z porównywania wartości, nie z dopasowywania wzorców.
+
+Usuń indeks utworzony w poprzednim kroku i utwórz analogiczny indeks oparty o b-drzewa. Powtórz poprzednie zapytanie i zapisz wyniki (plan i czas).
+
+Wykonaj zapytanie wyświetlające zamówienia na wszystkie kompozycje, których ID zaczyna się na litery stojące w alfabecie przed "b". Czy indeks jest wykorzystywany?
+
+Wykonaj zapytanie o pozostałe kompozycje, czyli "b" i kolejne litery. Czy teraz indeks został użyty?
+
+Wymuś stosowanie indeksów przez wyłączenie parametru ''enable_seqscan'':
+<code sql>
+SET ENABLE_SEQSCAN TO OFF;
+</code>
+Zapytanie to sprawia, że PostgreSQL "chętniej" korzysta z indeksów -- ta forma optymalizacji konfigurajci bazy może być użyteczna w praktyce, gdy baza jest w pamięci masowej o niskim czasie wyszukiwania, np. na dysku SSD bądź na dysku z dużym buforem.
+Powtórz dwa poprzednie zapytania i porównaj plany oraz czasy wykonania.
+
+===== Indeksy a wzorce =====
+
+Załóż indeks dla kolumny ''uwagi'' i wykonaj zapytanie o wszystkie zamówienia, których uwagi zaczynają się od znaków "do". Czy indeks jest wykorzystywany?
+
+Usuń indeks i utwórz nowy, ale tym razem określając dla niego jawnie klasę operatorów ''varchar_pattern_ops'' ([[http://www.postgresql.org/docs/9.3/static/indexes-opclass.html|więcej informacji]]):
+<code sql>
+CREATE INDEX zamowienia_uwagi ON zamowienia (uwagi varchar_pattern_ops);
+</code>
+
+Powtórz ćwiczenie i porównaj plany oraz czas wykonania.
+
+===== Indeksy wielokolumnowe =====
+Załóż indeks wielokolumnowy obejmujący kolumny ''idklienta'', ''idodbiorcy'' oraz ''idkompozycji''. 
+
+Wybierz po jednej wartości występującej w tych kolumnach (np. z jednego przykładowego rekordu) i wykonaj:
+  * zapytanie, które ograniczenia dla poszczególnych kolumn łączy operatorem ''AND'',
+  * j.w., ale z operatorem ''OR''.
+Porównaj plany wykonania.
+
+Wykonaj teraz zapytanie o wszystkie zamówienia na kompozycję ''buk1''. 
+
+Usuń indeks i załóż po jednym indeksie na www. kolumny. Wykonaj trzy powyższe zapytania i porównaj wyniki. 
+
+//Nie usuwaj indeksów przed następnym ćwiczeniem.//
+
+
+
+
+===== Indeksy a sortowanie =====
+
+Wykonaj zapytanie zwracające wszystkie zamówienia posortowane według ID kompozycji. Czy indeks został wykorzystany?
+
+Teraz usuń indeks i powtórz zapytanie. Porównaj wyniki.
+
+Usuń wszystkie indeksy.
+
+===== Indeksy częściowe =====
+
+Utwórz indeks na kolumnie ''idklienta'', ale tylko dla zamówień zapłaconych. Sprawdź jego działanie poprzez pobranie wszystkich zapłaconych zamówień wybranego klienta. Powtórz zapytanie dla zamówień niezapłaconych.
+
+Teraz oblicz sumę wszystkich zamówień niezapłaconych. Czy zapytanie korzysta z indeksu?
+
+
+
+===== Indeksy na wyrażeniach =====
+Utwórz indeks oraz zapytanie, które pozwolą na wyszukiwanie klientów z miasta zaczynającego się od określonego ciągu znaków (np. "krak"), niezależnie od wielkości znaków (czyli "krak"="Krak"="KRAK", itd.).
+
+
+===== Indeksy GiST =====
+Proszę dodać do tabeli ''zamowienia'' kolumnę ''lokalizacja'' typu ''point'' (zawierać będzie współrzędne miejsca dostawy) i wypełnić je punktami o losowych współrzędnych na płaszczyźnie (0,0)--(100,100):
+<code sql>
+ALTER TABLE zamowienia ADD COLUMN lokalizacja point;
+UPDATE zamowienia SET lokalizacja=point(random()*100, random()*100);
+</code>
+
+Napisz zapytania, które:
+  * podadzą zamówienia, których miejca dostaw są nie dalej niż 10 jednostek od centrum miasta, czyli punktu (50, 50),
+  * podadzą wszystkie zamówienia dla północno-zachodniej ćwiartki miasta.
+
+Utwórz indeks typu GiST wspierający ww. zapytania i powtórz analizę planu i pomiar czasu.
+
+

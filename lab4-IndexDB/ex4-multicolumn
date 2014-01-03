@@ -1,0 +1,90 @@
+//create multi column index
+create index multicolind on zamowienia(idklienta, idodbiorcy, idkompozycji);
+
+//select with and
+explain analyze select * from zamowienia where idklienta='ztylutek' AND idodbiorcy=12 AND idkompozycji='ko7';
+
+                                                      QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Index Scan using multicolind on zamowienia  (cost=0.00..8.27 rows=1 width=52) (actual time=0.104..0.107 rows=1 loops=1)
+   Index Cond: (((idklienta)::text = 'ztylutek'::text) AND (idodbiorcy = 12) AND (idkompozycji = 'ko7'::bpchar))
+ Total runtime: 0.172 ms
+
+
+//select with or
+explain analyze select * from zamowienia where idklienta='ztylutek' OR idodbiorcy=12 OR idkompozycji='ko7';
+
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=438.71..519.13 rows=851 width=52) (actual time=3.901..4.899 rows=851 loops=1)
+   Recheck Cond: (((idklienta)::text = 'ztylutek'::text) OR (idodbiorcy = 12) OR (idkompozycji = 'ko7'::bpchar))
+   ->  BitmapOr  (cost=438.71..438.71 rows=881 width=0) (actual time=3.859..3.859 rows=0 loops=1)
+         ->  Bitmap Index Scan on multicolind  (cost=0.00..5.35 rows=146 width=0) (actual time=0.166..0.166 rows=146 loops=1)
+               Index Cond: ((idklienta)::text = 'ztylutek'::text)
+         ->  Bitmap Index Scan on multicolind  (cost=0.00..216.36 rows=332 width=0) (actual time=1.454..1.454 rows=332 loops=1)
+               Index Cond: (idodbiorcy = 12)
+         ->  Bitmap Index Scan on multicolind  (cost=0.00..216.36 rows=403 width=0) (actual time=2.234..2.234 rows=403 loops=1)
+               Index Cond: (idkompozycji = 'ko7'::bpchar)
+ Total runtime: 5.411 ms
+
+
+//select all with idkompozycji='buk1';
+explain analyze select * from zamowienia where idkompozycji='buk1';
+
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=216.47..286.77 rows=424 width=52) (actual time=2.236..2.843 rows=424 loops=1)
+   Recheck Cond: (idkompozycji = 'buk1'::bpchar)
+   ->  Bitmap Index Scan on multicolind  (cost=0.00..216.36 rows=424 width=0) (actual time=2.193..2.193 rows=424 loops=1)
+         Index Cond: (idkompozycji = 'buk1'::bpchar)
+ Total runtime: 3.108 ms
+
+//drop index, create 3 index separately
+drop index mulcolind;
+create index idklientaind on zamowienia(idklienta);
+create index idodbiorcyind on zamowienia(idodbiorcy);
+create index idkompozycjiind on zamowienia(idkompozycji);
+
+
+//once again
+explain analyze select * from zamowienia where idklienta='ztylutek' AND idodbiorcy=12 AND idkompozycji='ko7';
+
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=23.86..27.88 rows=1 width=52) (actual time=0.646..0.648 rows=1 loops=1)
+   Recheck Cond: (((idklienta)::text = 'ztylutek'::text) AND (idodbiorcy = 12) AND (idkompozycji = 'ko7'::bpchar))
+   ->  BitmapAnd  (cost=23.86..23.86 rows=1 width=0) (actual time=0.634..0.634 rows=0 loops=1)
+         ->  Bitmap Index Scan on idklientaind  (cost=0.00..5.35 rows=146 width=0) (actual time=0.216..0.216 rows=146 loops=1)
+               Index Cond: ((idklienta)::text = 'ztylutek'::text)
+         ->  Bitmap Index Scan on idodbiorcyind  (cost=0.00..6.74 rows=332 width=0) (actual time=0.147..0.147 rows=332 loops=1)
+               Index Cond: (idodbiorcy = 12)
+         ->  Bitmap Index Scan on idkompozycjiind  (cost=0.00..11.27 rows=403 width=0) (actual time=0.235..0.235 rows=403 loops=1)
+               Index Cond: (idkompozycji = 'ko7'::bpchar)
+ Total runtime: 0.748 ms
+
+
+explain analyze select * from zamowienia where idklienta='ztylutek' OR idodbiorcy=12 OR idkompozycji='ko7';
+
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=24.00..104.42 rows=851 width=52) (actual time=0.496..1.470 rows=851 loops=1)
+   Recheck Cond: (((idklienta)::text = 'ztylutek'::text) OR (idodbiorcy = 12) OR (idkompozycji = 'ko7'::bpchar))
+   ->  BitmapOr  (cost=24.00..24.00 rows=881 width=0) (actual time=0.455..0.455 rows=0 loops=1)
+         ->  Bitmap Index Scan on idklientaind  (cost=0.00..5.35 rows=146 width=0) (actual time=0.151..0.151 rows=146 loops=1)
+               Index Cond: ((idklienta)::text = 'ztylutek'::text)
+         ->  Bitmap Index Scan on idodbiorcyind  (cost=0.00..6.74 rows=332 width=0) (actual time=0.108..0.108 rows=332 loops=1)
+               Index Cond: (idodbiorcy = 12)
+         ->  Bitmap Index Scan on idkompozycjiind  (cost=0.00..11.27 rows=403 width=0) (actual time=0.192..0.192 rows=403 loops=1)
+               Index Cond: (idkompozycji = 'ko7'::bpchar)
+ Total runtime: 1.968 ms
+
+
+explain analyze select * from zamowienia where idkompozycji='buk1';
+
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=11.54..81.84 rows=424 width=52) (actual time=0.312..0.923 rows=424 loops=1)
+   Recheck Cond: (idkompozycji = 'buk1'::bpchar)
+   ->  Bitmap Index Scan on idkompozycjiind  (cost=0.00..11.43 rows=424 width=0) (actual time=0.272..0.272 rows=424 loops=1)
+         Index Cond: (idkompozycji = 'buk1'::bpchar)
+ Total runtime: 1.193 ms
