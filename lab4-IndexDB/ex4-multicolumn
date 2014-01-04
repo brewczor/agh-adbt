@@ -39,6 +39,7 @@ explain analyze select * from zamowienia where idkompozycji='buk1';
          Index Cond: (idkompozycji = 'buk1'::bpchar)
  Total runtime: 3.108 ms
 
+
 //drop index, create 3 index separately
 drop index mulcolind;
 create index idklientaind on zamowienia(idklienta);
@@ -65,6 +66,7 @@ explain analyze select * from zamowienia where idklienta='ztylutek' AND idodbior
 
 explain analyze select * from zamowienia where idklienta='ztylutek' OR idodbiorcy=12 OR idkompozycji='ko7';
 
+
                                                             QUERY PLAN                                                             
 -----------------------------------------------------------------------------------------------------------------------------------
  Bitmap Heap Scan on zamowienia  (cost=24.00..104.42 rows=851 width=52) (actual time=0.496..1.470 rows=851 loops=1)
@@ -77,6 +79,7 @@ explain analyze select * from zamowienia where idklienta='ztylutek' OR idodbiorc
          ->  Bitmap Index Scan on idkompozycjiind  (cost=0.00..11.27 rows=403 width=0) (actual time=0.192..0.192 rows=403 loops=1)
                Index Cond: (idkompozycji = 'ko7'::bpchar)
  Total runtime: 1.968 ms
+
 
 
 explain analyze select * from zamowienia where idkompozycji='buk1';

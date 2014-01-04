@@ -33,6 +33,3 @@ explain analyze select sum(cena) from zamowienia where not zaplacone and idklien
          Filter: ((NOT zaplacone) AND ((idklienta)::text = 'kkowal'::text))
  Total runtime: 4.156 ms
 
-
-
-
