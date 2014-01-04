@@ -1,0 +1,38 @@
+//create index for paid orders for idklienta
+create index paidordind on zamowienia(idklienta) where zaplacone=true;
+
+//select paid orders for client
+explain analyze select * from zamowienia where zaplacone=true and idklienta='kkowal';
+
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on zamowienia  (cost=5.44..72.37 rows=154 width=52) (actual time=0.187..0.480 rows=154 loops=1)
+   Recheck Cond: (((idklienta)::text = 'kkowal'::text) AND zaplacone)
+   ->  Bitmap Index Scan on paidordind  (cost=0.00..5.41 rows=154 width=0) (actual time=0.150..0.150 rows=154 loops=1)
+         Index Cond: ((idklienta)::text = 'kkowal'::text)
+ Total runtime: 0.647 ms
+
+
+//select unpaid orders for client
+explain analyze select * from zamowienia where zaplacone=false and idklienta='kkowal';
+
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Seq Scan on zamowienia  (cost=0.00..165.19 rows=1 width=52) (actual time=4.108..4.108 rows=0 loops=1)
+   Filter: ((NOT zaplacone) AND ((idklienta)::text = 'kkowal'::text))
+ Total runtime: 4.168 ms
+
+
+//select sum of unpaid orders
+explain analyze select sum(cena) from zamowienia where not zaplacone and idklienta='kkowal';
+
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=165.19..165.20 rows=1 width=5) (actual time=4.081..4.082 rows=1 loops=1)
+   ->  Seq Scan on zamowienia  (cost=0.00..165.19 rows=1 width=5) (actual time=4.075..4.075 rows=0 loops=1)
+         Filter: ((NOT zaplacone) AND ((idklienta)::text = 'kkowal'::text))
+ Total runtime: 4.156 ms
+
+
+
+

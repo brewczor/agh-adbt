@@ -1,0 +1,22 @@
+//select all records order by idkompozycji (using index from ex4)
+explain analyze select * from zamowienia order by idkompozycji;
+
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idkompozycjiind on zamowienia  (cost=0.00..476.00 rows=8015 width=52) (actual time=0.105..10.607 rows=8015 loops=1)
+ Total runtime: 14.629 ms
+
+
+//drop index
+drop index idkompozycjiind;
+
+//once again
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=664.86..684.90 rows=8015 width=52) (actual time=24.696..26.739 rows=8015 loops=1)
+   Sort Key: idkompozycji
+   Sort Method: quicksort  Memory: 693kB
+   ->  Seq Scan on zamowienia  (cost=0.00..145.15 rows=8015 width=52) (actual time=0.017..4.304 rows=8015 loops=1)
+ Total runtime: 28.274 ms
+
+

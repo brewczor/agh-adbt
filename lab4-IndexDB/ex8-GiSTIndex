@@ -1,0 +1,61 @@
+//add localization column - point type, and fullfil with random values
+ALTER TABLE zamowienia ADD COLUMN lokalizacja point;
+UPDATE zamowienia SET lokalizacja=point(random()*100, random()*100);
+
+//select all orders in distance 10 from center
+EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE circle '((50,50),10)' @> lokalizacja;
+
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Seq Scan on public.zamowienia  (cost=0.00..269.19 rows=8 width=68) (actual time=0.053..6.902 rows=238 loops=1)
+   Output: idzamowienia, idklienta, idodbiorcy, idkompozycji, termin, cena, zaplacone, uwagi, lokalizacja
+   Filter: ('<(50,50),10>'::circle @> zamowienia.lokalizacja)
+ Total runtime: 7.107 ms
+
+
+
+//select all orders for north-west quater of the city
+EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE box '((0,100),(50,50))' @> lokalizacja;
+
+
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Seq Scan on public.zamowienia  (cost=0.00..269.19 rows=8 width=68) (actual time=0.027..6.986 rows=2004 loops=1)
+   Output: idzamowienia, idklienta, idodbiorcy, idkompozycji, termin, cena, zaplacone, uwagi, lokalizacja
+   Filter: ('(50,100),(0,50)'::box @> zamowienia.lokalizacja)
+ Total runtime: 8.055 ms
+
+
+
+//create gist index for queries
+create index gistind on zamowienia using gist(lokalizacja);
+
+
+//once again
+EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE circle '((50,50),10)' @> lokalizacja;
+
+
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.zamowienia  (cost=4.31..31.19 rows=8 width=68) (actual time=0.597..1.156 rows=238 loops=1)
+   Output: idzamowienia, idklienta, idodbiorcy, idkompozycji, termin, cena, zaplacone, uwagi, lokalizacja
+   Recheck Cond: ('<(50,50),10>'::circle @> zamowienia.lokalizacja)
+   ->  Bitmap Index Scan on gistind  (cost=0.00..4.31 rows=8 width=0) (actual time=0.551..0.551 rows=238 loops=1)
+         Index Cond: ('<(50,50),10>'::circle @> zamowienia.lokalizacja)
+ Total runtime: 1.360 ms
+
+
+
+EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE box '((0,100),(50,50))' @> lokalizacja;
+
+
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on public.zamowienia  (cost=4.31..31.19 rows=8 width=68) (actual time=0.395..1.543 rows=2004 loops=1)
+   Output: idzamowienia, idklienta, idodbiorcy, idkompozycji, termin, cena, zaplacone, uwagi, lokalizacja
+   Recheck Cond: ('(50,100),(0,50)'::box @> zamowienia.lokalizacja)
+   ->  Bitmap Index Scan on gistind  (cost=0.00..4.31 rows=8 width=0) (actual time=0.372..0.372 rows=2004 loops=1)
+         Index Cond: ('(50,100),(0,50)'::box @> zamowienia.lokalizacja)
+ Total runtime: 1.925 ms
+
+

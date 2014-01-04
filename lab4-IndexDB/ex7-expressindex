@@ -1,0 +1,13 @@
+//create index for low and capital letters, optimized for like statement
+create index miastoind on klienci(lower(miasto) varchar_pattern_ops);
+
+//select all clients from krak... city (lettersize doesn't matter)
+explain analyze select * from klienci where lower(miasto) like 'krak%';
+
+
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Seq Scan on klienci  (cost=0.00..1.75 rows=1 width=692) (actual time=0.040..0.171 rows=23 loops=1)
+   Filter: (lower((miasto)::text) ~~ 'krak%'::text)
+ Total runtime: 0.241 ms
+
