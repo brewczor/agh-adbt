@@ -17,7 +17,6 @@ EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE circle '((50,50),10)' @> 
 //select all orders for north-west quater of the city
 EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE box '((0,100),(50,50))' @> lokalizacja;
 
-
                                                    QUERY PLAN                                                    
 -----------------------------------------------------------------------------------------------------------------
  Seq Scan on public.zamowienia  (cost=0.00..269.19 rows=8 width=68) (actual time=0.027..6.986 rows=2004 loops=1)
@@ -26,14 +25,12 @@ EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE box '((0,100),(50,50))' @
  Total runtime: 8.055 ms
 
 
-
 //create gist index for queries
 create index gistind on zamowienia using gist(lokalizacja);
 
 
 //once again
 EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE circle '((50,50),10)' @> lokalizacja;
-
 
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
@@ -45,9 +42,7 @@ EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE circle '((50,50),10)' @> 
  Total runtime: 1.360 ms
 
 
-
 EXPLAIN ANALYZE VERBOSE SELECT * FROM zamowienia WHERE box '((0,100),(50,50))' @> lokalizacja;
-
 
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
