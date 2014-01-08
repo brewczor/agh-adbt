@@ -1,0 +1,92 @@
+====== Bazy danych i XML ======
+
+===== PostgreSQL =====
+
+PostgreSQL umożliwia zarówno generację dokumentów XML na podstawie danch relacyjnych, jak i gromadzenie i przetwarzanie dokumentów XML.
+Opis funkcji umożliwiających dostęp do danych XML znajduje się pod adresem: 
+http://www.postgresql.org/docs/9.1/static/functions-xml.html
+
+==== Publikacja XML ====
+
+Dana jest tabela ''kompozycje'' w bazie danych Internetowej Kwiaciarni z poprzednich zajęć:
+
+<code>
+             Table "public.kompozycje"
+    Column    |          Type          | Modifiers 
+--------------+------------------------+-----------
+ idkompozycji | character(5)           | not null
+ nazwa        | character varying(40)  | not null
+ opis         | character varying(100) | 
+ cena         | numeric(7,2)           | 
+ minimum      | integer                | 
+ stan         | integer                | 
+</code>
+
+Napisz odpowiednie zapytanie, które zwróci kompletny dokument XML reprezentujący kompozycje, których stan jest większy niż 4.
+Dokument ma być zgodny z przykładem poniżej.
+
+<code xml>
+<flowers>
+  <bouquet id="ko2" quant="12" price="120">
+    <name>Kosz rozyczek</name>
+    <description>tuzin czerwonych rozyczek, molucella, gips, sizal, koszyk czerwony z palakiem</description>
+  </bouquet>
+...
+</flowers>
+</code>
+
+==== Przechowywanie XML ====
+
+Utwórz tabelę ''printers'' umożliwiającą przechowywanie informacji o drukarkach tj. nazwę oraz dokument XML opisujący jej parametry. Zbuduj również odpowiedni klucz główny.
+Informacje o drukarkach dane są w postaci  {{:pl:ztb:printer.tgz|zbioru plików XML}}.
+
+Załaduj w/w dokumenty XML do tabeli ''printers''.
+Możesz zainspirować się poniższym skryptem:
+
+<code bash>
+#!/bin/bash
+
+for i in *.xml
+do
+
+cat <<EOT
+INSERT INTO printer (name,description) VALUES( '$i', '`cat $i`');
+EOT
+
+done
+</code> 
+
+Sprawdź czy operacja ładowania się powiodła i informacje o drukarkach znajdują sie w tabeli.
+
+==== Przetwarzanie XML  ====
+
+Posłuż się przykładem z wykładu, aby zbudować odpowiednie wyrażenia XPath mające zastosowanie poniżej.
+
+Napisz zapytanie, które znajdzie nazwy i rozdzielczości poziome wszystkich drukarek.
+Rozdzielczość reprezentowana jest przez element ''x'' w ''dpi'' w ''resolution'' w ''mechanism'' w ''printer''
+
+Napisz zapytanie, które znajdzie nazwy i rozdzielczości poziome wszystkich drukarek i uporządkuj je rosnąco z uwagi na rozdzielczość zakłądająć, że rozdzielczość jesty typu ''text'' (dokonaj odpowiedniego rzutowania).
+Rozdzielczość reprezentowana jest przez element ''x'' w ''dpi'' w ''resolution'' w ''mechanism'' w ''printer''
+
+Napisz zapytanie, które znajdzie nazwy i rozdzielczości poziome wszystkich drukarek i uporządkuj je rosnąco z uwagi na rozdzielczość zakłądająć, że rozdzielczość jesty typu ''int'' (dokonaj odpowiedniego rzutowania).
+Rozdzielczość reprezentowana jest przez element ''x'' w ''dpi'' w ''resolution'' w ''mechanism'' w ''printer''
+
+Napisz zapytania, które znajdzie nazwy wszystkich kolorowych drukarek o rozdzielczości poziomej większej niż 1200.
+Rozdzielczość reprezentowana jest przez element ''x'' w ''dpi'' w ''resolution'' w ''mechanism'' w ''printer''
+Drukarka kolorowa będzie zawierała element ''color'' w  ''mechanism'' w ''printer''.
+
+
+==== Indeksowanie XML  ====
+
+Zweryfikuj wydajność zapytań z poprzedniego ćwiczenia z użyciem EXPLAIN. 
+
+Utwórz indeks na wartości rozdzielczości poziomej (skorzystaj z przykładu z wykładu).
+
+Zweryfikuj wydajność zapytań z poprzedniego ćwiczenia.
+
+Uwaga, może zaistnieć konieczność przekonania bazy danych o użyciu indeksów:
+<code sql>
+SET ENABLE_SEQSCAN TO OFF;
+</code>
+
+Uwaga, zwróć uwagę na typ danych tworzonego indeksu i typ danych używany w zapytaniach. Indeks zostanie użyty jedynie gdy typy będą takie same.
