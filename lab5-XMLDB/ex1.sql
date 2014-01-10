@@ -2,7 +2,7 @@
 select 
 	xmlelement(name flowers, 
 		xmlelement(name bouqet, 
-			xmlattributes(idkompozycji as id, stan as quant, floor(cena) as price),
+			xmlattributes(trin(idkompozycji) as id, stan as quant, floor(cena) as price),
 			xmlelement(name name, nazwa),
 			xmlelement(name description, opis)
 		)
