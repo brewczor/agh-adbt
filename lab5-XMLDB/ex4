@@ -1,0 +1,38 @@
+-- bez indeksu
+
+a) explain analyze select name, (xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1] as res_x from printer;
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Seq Scan on printer  (cost=0.00..37.77 rows=222 width=51) (actual time=0.224..26.506 rows=222 loops=1)
+ Total runtime: 26.607 ms
+(2 rows)
+
+
+b) explain analyze select name, (xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1]::text as res_x from printer order by res_x asc;
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=46.43..46.98 rows=222 width=51) (actual time=26.675..26.688 rows=222 loops=1)
+   Sort Key: (((xpath('//printer/mechanism/resolution/dpi/x/text()'::text, description, '{}'::text[]))[1])::text)
+   Sort Method: quicksort  Memory: 42kB
+   ->  Seq Scan on printer  (cost=0.00..37.77 rows=222 width=51) (actual time=0.218..26.032 rows=222 loops=1)
+ Total runtime: 26.733 ms
+(5 rows)
+
+c) explain analyze select name, ((xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1]::text)::integer as res_x from printer order by res_x asc;                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=47.54..48.09 rows=222 width=51) (actual time=26.632..26.647 rows=222 loops=1)
+   Sort Key: ((((xpath('//printer/mechanism/resolution/dpi/x/text()'::text, description, '{}'::text[]))[1])::text)::integer)
+   Sort Method: quicksort  Memory: 42kB
+   ->  Seq Scan on printer  (cost=0.00..38.88 rows=222 width=51) (actual time=0.215..26.268 rows=222 loops=1)
+ Total runtime: 26.691 ms
+(5 rows)
+
+d) explain analyze select name from printer where ((xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1]::text)::integer > 1200 and xpath_exists('//printer/mechanism/color', description);
+                                                                                                    QUERY PLAN                                                                                                     
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Seq Scan on printer  (cost=0.00..39.99 rows=25 width=19) (actual time=4.923..28.538 rows=24 loops=1)
+   Filter: (xpath_exists('//printer/mechanism/color'::text, description, '{}'::text[]) AND ((((xpath('//printer/mechanism/resolution/dpi/x/text()'::text, description, '{}'::text[]))[1])::text)::integer > 1200))
+ Total runtime: 28.578 ms
+(3 rows)
+
+-- nałożenie indeksu:

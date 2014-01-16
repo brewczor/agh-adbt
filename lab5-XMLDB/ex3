@@ -1,0 +1,5 @@
+a) select name, (xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1] as res_x from printer;
+b) select name, (xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1]::text as res_x from printer order by res_x asc;
+c) select name, ((xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1]::text)::integer as res_x from printer order by res_x asc;
+-- ERROR:  cannot cast type xml to integer
+d) select name from printer where ((xpath('//printer/mechanism/resolution/dpi/x/text()', description))[1]::text)::integer > 1200 and xpath_exists('//printer/mechanism/color', description);
