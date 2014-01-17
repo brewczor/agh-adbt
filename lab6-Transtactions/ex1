@@ -1,0 +1,14 @@
+CREATE TABLE x (a integer, b integer);
+--T1: 
+BEGIN TRANSACTION ISOLATION LEVEL READ committed;
+--T2: 
+BEGIN TRANSACTION ISOLATION LEVEL READ committed;
+-- wstaw pierwszy wiersz do tabeli:
+--T1: 
+INSERT INTO x VALUES (1, 2);
+.....
+T--1: 
+COMMIT;
+-- tu zmieniliśmy dane, o która pytała druga transakcja
+--T2: 
+ROLLBACK;

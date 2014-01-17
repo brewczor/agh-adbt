@@ -1,0 +1,2 @@
+LOCK table x in access exclusive mode;
+
