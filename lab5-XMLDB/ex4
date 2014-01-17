@@ -36,3 +36,12 @@ d) explain analyze select name from printer where ((xpath('//printer/mechanism/r
 (3 rows)
 
 -- nałożenie indeksu:
+
+CREATE INDEX idx_xml_printer_asc ON printer USING btree (
+  (
+    (xpath('//printer/mechanism/resolution/dpi/x/text()', description))
+    [1]::text::integer
+  )
+);
+
+SET ENABLE_SEQSCAN TO OFF;
