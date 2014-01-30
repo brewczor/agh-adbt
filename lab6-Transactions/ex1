@@ -1,5 +1,6 @@
---T1:
+--before
 CREATE TABLE x (a integer, b integer);
+
 --T1: 
 BEGIN TRANSACTION ISOLATION LEVEL READ committed;
 --T2: 

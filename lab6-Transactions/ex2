@@ -1,2 +1,24 @@
-LOCK table x in access exclusive mode;
+--before
+DELETE FROM x;
 
+--locking
+--LOCK table x in access exclusive mode;
+
+--T1:
+CREATE TABLE x (a integer, b integer);
+--T1: 
+BEGIN TRANSACTION ISOLATION LEVEL READ committed;
+--T2: 
+BEGIN TRANSACTION ISOLATION LEVEL READ committed;
+--T1: 
+LOCK table x in access exclusive mode;
+--T2:
+SELECT * FROM x;
+--waits until table is unlocked
+--T1:
+INSERT INTO x VALUES (1, 2);
+--T1: 
+COMMIT;
+--T2 returns 1 row after commit from T1
+--T2
+COMMIT; / ROLLBACK;
